@@ -1,16 +1,3 @@
-- #### Attention, Self Attention, Cross Attention
-  - www
-- #### Cross Attention
-- #### Modality gap
-- #### CLIP
-- #### Policy Network
-- #### stable diffusion
-- #### GPTQ
-- #### temperature
-- #### tokenlize tool
----
-<br>
-
 
 # Attention, Self-Attention 與 Cross-Attention
 

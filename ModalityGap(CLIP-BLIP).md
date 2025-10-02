@@ -405,6 +405,7 @@ BLIP 引入三種 **自監督 / 弱監督** 任務：
 
 1. **Image–Text Contrastive Learning (ITC)**  
    - 與 CLIP 類似，讓圖像與文字匹配。
+   
    $$
    L_{ITC} = - \log \frac{\exp(\text{sim}(v,t)/\tau)}{\sum_j \exp(\text{sim}(v,t_j)/\tau)}
    $$
@@ -518,9 +519,6 @@ Large Language Model (LLM)
 - **BLIP-2**：進一步引入 **Q-Former**，有效結合現成 **LLM**，實現 **高效多模態推理**。  
 - 這條路線已成為後續多模態 AI 的主流架構之一。
 
-```
-
----
 
 
 

@@ -1,551 +1,443 @@
-- LlamaIndex
-- Encoder-only, encoder-decoder,decoder-only
-- Zero / One / Few shot
-- LangChain
-- Runnable in LCEL
-- LangGraph
-- Llama / Llama-2 / Llama-3
-- Tokens / tokenization
-- NIM
-- Instruction tuning / alignment
-- Embeddings
-- Stochastic Parrot
-- Auto-regressive forecasting
-- Agentics (e.g. ReAct) and tools
-- GPT2, GPT3, ChatGPT, GPT4
-- Quantization
-- Whisper Model
-- T5 model
-- Transformers and self/cross attention
-- Query / Key / Value
-- Masking / MLM
-- Hugging Face
-- Foundation Model
-- BERT
-- RAG
-- Hallucinations
-- CLIP / ViT / VLM / diffusion
+- [LlamaIndex](#llamaindex)
+- [Encoder-only / Encoder-decoder / Decoder-only](#encoder-only--encoder-decoder--decoder-only)
+- [Zero / One / Few-shot](#zero--one--few-shot)
+- [LangChain](#langchain)
+- [Runnable in LCEL](#runnable-in-lcel)
+- [LangGraph](#langgraph)
+- [Llama / Llama-2 / Llama-3](#llama--llama-2--llama-3)
+- [Tokens / Tokenization](#tokens--tokenization)
+- [NIM](#nim)
+- [Instruction Tuning / Alignment](#instruction-tuning--alignment)
+- [Embeddings](#embeddings)
+- [Stochastic Parrot](#stochastic-parrot)
+- [Auto-regressive Forecasting](#auto-regressive-forecasting)
+- [Agentics (ReAct) \& Tools](#agentics-react--tools)
+- [GPT2 / GPT3 / ChatGPT / GPT4](#gpt2--gpt3--chatgpt--gpt4)
+- [Quantization](#quantization)
+- [Whisper Model](#whisper-model)
+- [T5 Model](#t5-model)
+- [Transformers \& Self/Cross Attention](#transformers--selfcross-attention)
+- [Query / Key / Value](#query--key--value)
+- [Masking / MLM](#masking--mlm)
+- [Hugging Face](#hugging-face)
+- [Foundation Model](#foundation-model)
+- [BERT](#bert)
+- [RAG (Retrieval-Augmented Generation)](#rag-retrieval-augmented-generation)
+- [Hallucinations](#hallucinations)
+- [CLIP / ViT / VLM / Diffusion](#clip--vit--vlm--diffusion)
   
+---
+
+| 名稱                     | 英文解釋                                  | 中文摘要                 | 重點                          |
+| ---------------------- | ------------------------------------- | -------------------- | --------------------------- |
+| **LlamaIndex**         | Data framework for RAG (ex GPT Index) | 資料接入與索引化，支援多來源檢索     | RAG、索引、多來源                  |
+| **Encoder-only**       | Only encoder (e.g. BERT)              | 單純理解/分類模型            | 句向量、語義理解                    |
+| **Encoder-decoder**    | Encoder→Decoder (e.g. T5)             | 翻譯、摘要等輸入→輸出任務        | Seq2Seq、跨序列                 |
+| **Decoder-only**       | Only decoder (e.g. GPT)               | 自回歸生成                | 長文本生成                       |
+| **Zero/One/Few-shot**  | Prompting with 0/1/few examples       | 提示工程技術               | Few-shot>One-shot>Zero-shot |
+| **LangChain**          | LLM app framework                     | 串接模型、記憶體、工具          | Chains、Agents               |
+| **Runnable (LCEL)**    | Composable unit in LCEL               | 可組合的可執行單元            | invoke/stream               |
+| **LangGraph**          | DAG-based agent workflow              | 圖式 Agent 狀態機         | DAG、循環、條件                   |
+| **Llama-1/2/3**        | Meta’s open LLMs                      | 開源、商用友好、持續升級         | 私有部署                        |
+| **Tokenization**       | Split text to tokens                  | 字詞分片，轉換為ID           | BPE、token成本                 |
+| **NIM**                | NVIDIA Inference Microservice         | 模型推理容器化              | Triton、TensorRT             |
+| **Instruction tuning** | Fine-tune on task instructions        | 指令微調                 | 提高服從指令能力                    |
+| **Alignment**          | Align model to human values           | 模型價值/安全調校            | RLHF                        |
+| **Embeddings**         | Text→vector                           | 語意向量                 | 檢索、相似度                      |
+| **Stochastic Parrot**  | LLM = random pattern parrot           | 隨機鸚鵡比喻               | 缺乏理解                        |
+| **Auto-regressive**    | Predict next token                    | 自回歸序列生成              | GPT核心原理                     |
+| **Agentics / ReAct**   | Reason+Act with tools                 | 智能體推理+工具調用           | Agent、工具鏈                   |
+| **GPT2/3/ChatGPT/4**   | Generative Pretrained Transformers    | GPT 系列發展史            | Decoder-only、多模態(GPT-4)     |
+| **Quantization**       | Compress FP32→INT8/FP8                | 壓縮加速推論               | GPTQ/QAT/PTQ                |
+| **Whisper**            | ASR model by OpenAI                   | 自動語音辨識、多語言           | 抗雜訊、轉錄                      |
+| **T5**                 | Text-to-Text Transfer Transformer     | 任務統一化                | Encoder-decoder             |
+| **Transformers**       | Attention-based architecture          | 取代RNN/CNN            | Self/Cross Attention        |
+| **Q/K/V**              | Query/Key/Value                       | 注意力三元素               | softmax(QKᵀ)V               |
+| **Masking/MLM**        | Masked Language Modeling              | 隱藏填補訓練               | BERT 預訓練                    |
+| **Hugging Face**       | Open ML platform                      | Transformers套件、模型Hub | 生態完整                        |
+| **Foundation Model**   | Large pre-trained adaptable model     | 基礎大模型                | 通用+微調                       |
+| **BERT**               | Bidirectional Encoder                 | 雙向語義理解               | MLM+NSP                     |
+| **RAG**                | Retrieval-Augmented Generation        | 檢索輔助生成               | 外部知識補充                      |
+| **Hallucinations**     | Confident wrong outputs               | 虛構錯誤內容               | RAG可減少                      |
+| **CLIP**               | Align text & image embeddings         | 圖文對齊                 | 解決 modality gap             |
+| **ViT**                | Vision Transformer                    | 影像特徵抽取               | Transformer in CV           |
+| **VLM**                | Vision-Language Model                 | 多模態模型                | 圖文推理                        |
+| **Diffusion**          | Denoising generative model            | 去噪生成影像               | Stable Diffusion            |
 
 
 ---
 
-# LlamaIndex {#ndex}
 
-**是什麼**
-資料接入與檢索增強生成（RAG）框架。把檔案/DB/API轉成索引（向量、樹、清單…），提供 Query Engine 與 Router，讓 LLM 能精準取用外部知識。
+## LlamaIndex
 
-**為什麼重要**
-解決「私有知識檢索、資料孤島、長文件摘要」等企業級需求；與 LangChain/LangGraph、各家向量庫（FAISS/PGVector）整合順暢。
+**解釋**：
+LlamaIndex（原名 GPT Index）是一個 **資料接入與檢索增強生成 (RAG)** 框架，用來把結構化或非結構化資料（文件、資料庫、API）整理成可供大型語言模型 (LLM) 高效檢索的索引。它支援多種索引結構（Vector Store Index、Tree Index、Keyword Table Index 等）。
 
-**例子（Python）**
+**重點摘要**：
 
-```python
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-docs = SimpleDirectoryReader("docs").load_data()
-index = VectorStoreIndex.from_documents(docs)
-query_engine = index.as_query_engine(similarity_top_k=5)
-print(query_engine.query("合約的解約條款？"))
-```
-
-**面試要點**
-
-* 何時用：長文件問答、法規/合約檢索、產品手冊客服。
-* 指標：Recall@k、答案來源引用（source grounding）、延遲（latency）。
+* RAG 解決長文本記憶限制
+* 支援多資料來源 (PDF、SQL、API)
+* 內建查詢管線（Query Engine、Retriever）
+* 與 LangChain、OpenAI API 相容
 
 ---
 
-# 🔧 Encoder-only / Encoder-decoder / Decoder-only
+## Encoder-only / Encoder-decoder / Decoder-only
 
-**是什麼**
+**解釋**：
 
-* **Encoder-only**（如 BERT）：善理解/分類/檢索。
-* **Encoder-decoder**（如 T5、BART）：輸入→輸出轉換（翻譯、摘要）。
-* **Decoder-only**（如 GPT 家族、Llama）：自回歸生成。
+* **Encoder-only**：僅使用編碼器，適合理解與分類（如 BERT）。
+* **Encoder-decoder**：先編碼輸入，再解碼輸出，適合翻譯、摘要（如 T5）。
+* **Decoder-only**：只用解碼器，適合自回歸生成（如 GPT 系列）。
 
-**例子**
+**重點摘要**：
 
-* 情緒分類→BERT；新聞摘要→T5；對話/程式生成→GPT/Llama。
-
-**面試要點**
-用任務類型對映結構：理解→Encoder、轉換→Enc-Dec、自由生成→Dec-only。
-
----
-
-# 🎯 Zero / One / Few-shot
-
-**是什麼**
-描述推理時示例數量：0/1/少量。Few-shot 透過示例模板提高穩定性。
-
-**例子（Prompt 片段）**
-
-```
-You are a classifier. 
-Examples:
-Q: "Great battery life" → Positive
-Q: "Terrible camera" → Negative
-Now classify: "Screen is okay but slow"
-```
-
-**面試要點**
-
-* Few-shot > Zero-shot 的情況：類別微妙、語域特定。
-* 與「指令微調（SFT）」相比是推理時策略，不是再訓練。
+* Encoder-only：理解、embedding
+* Encoder-decoder：輸入到輸出轉換
+* Decoder-only：長文本生成、聊天
 
 ---
 
-# 🔗 LangChain
+## Zero / One / Few-shot
 
-**是什麼**
-開源框架，用來組裝 LLM、工具、記憶體與資料來源；提供 Chains、Agents、工具介面與 LCEL。
+**解釋**：
 
-**例子（檢索 + LLM）**
+* **Zero-shot**：模型完全靠預訓練知識回答，無示例。
+* **One-shot**：提供一個範例後再回答。
+* **Few-shot**：給數個範例，幫助模型理解任務。
 
-```python
-from langchain_openai import ChatOpenAI
-from langchain_community.vectorstores import FAISS
-from langchain.chains import RetrievalQA
-llm = ChatOpenAI(model="gpt-4o-mini")
-retriever = FAISS.load_local("idx").as_retriever(k=4)
-qa = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-qa("合約解約條文重點是什麼？")
-```
+**重點摘要**：
 
-**面試要點**
-
-* 何時用 Agent：需工具選擇/多步計畫/動態決策。
-* 何時用 Chain：流程固定、可管線化。
+* 提示工程核心技巧
+* Few-shot > One-shot > Zero-shot（精度通常較高）
 
 ---
 
-# ⚙️ Runnable in LCEL
+## LangChain
 
-**是什麼**
-LCEL（LangChain Expression Language）讓鏈條能以「函式管線」組裝；`Runnable` 物件支援 `.invoke()`、`.stream()`。
+**解釋**：
+一個 **構建 LLM 應用** 的框架，提供「Chain」與「Agent」抽象，結合模型、工具、記憶體、資料庫等。
 
-**例子**
+**重點摘要**：
 
-```python
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-prompt = ChatPromptTemplate.from_messages([("user","Summarize: {text}")])
-chain = prompt | ChatOpenAI(model="gpt-4o-mini")
-chain.invoke({"text": "Long paragraph..."})
-```
-
-**面試要點**
-
-* 優點：組合安全、易測試、可觀測（tracing）。
-* 與傳統 Chains 比：更像 Unix pipes。
+* 模組化組件 (LLM、Prompt、Memory)
+* 支援 Agentic Workflow
+* 與向量資料庫、RAG 整合良好
 
 ---
 
-# 🌐 LangGraph
+## Runnable in LCEL
 
-**是什麼**
-基於狀態機/圖的 Agent 框架；支援分支、回圈、錯誤恢復、長對話記憶。
+**解釋**：
+LangChain Expression Language (LCEL) 的核心概念。Runnable 是可組合的計算單元，透過 `.invoke()` 或 `.stream()` 執行，可拼接成複雜流程。
 
-**例子（簡化圖）**
+**重點摘要**：
 
-```
-[plan] -> [search] -> [reflect] -> {done? yes: [answer], no: back to [plan]}
-```
-
-**面試要點**
-用在多步決策、需要回溯或人機協作的代理。
+* 提供同步/非同步呼叫
+* 支援 Pipeline 式組合
+* 是 LangChain 新一代 API 核心
 
 ---
 
-# 🦙 LLaMA / LLaMA-2 / LLaMA-3
+## LangGraph
 
-**是什麼**
-Meta 開源 Decoder-only 家族：參數段（7B/13B/70B…）、聊天/指令版（-Instruct）、多語種。
+**解釋**：
+LangChain 團隊推出的 **圖式工作流框架**，使用有向圖（DAG）來設計 LLM Agent 流程，可視覺化 Agent 狀態。
 
-**例子**
+**重點摘要**：
 
-* Llama-3-8B-Instruct：邊緣/本地推論。
-* Llama-3-70B：高品質聊天與工具使用。
-
-**面試要點**
-
-* 與 GPT 系列差異：開源可自訓/量化，上線成本更可控。
+* Agent 狀態機 (state machine)
+* DAG + 記憶體，支援循環、條件分支
+* 適合大型多工具 Agent
 
 ---
 
-# 🧩 Tokens / Tokenization
+## Llama / Llama-2 / Llama-3
 
-**是什麼**
-Token 是模型的最小處理單位；BPE/WordPiece 將字串切成子詞片段。成本與長度限制以 token 計。
+**解釋**：
+Meta 發布的開源 LLM 系列。
 
-**例子**
-"unaffordable" → `["una", "ff", "ordable"]`（示意）
-中文常以字/字片段分割。
+* **Llama**：2023 首版，研究導向。
+* **Llama-2**：釋出商用授權，支援聊天模型。
+* **Llama-3**：2024 發布，支援更長上下文、對話強化。
 
-**面試要點**
+**重點摘要**：
 
-* 中英文 token 比例差→估算成本/上下文長度要留意。
-
----
-
-# 🚀 NIM（NVIDIA Inference Microservice）
-
-**是什麼**
-NVIDIA 的推論微服務封裝：模型容器 + Triton/性能最佳化 + 穩定 API。企業可即插即用布署 LLM/多模態。
-
-**面試要點**
-
-* 優勢：效能、可觀測、企業支援；與 RAG/向量DB/GuardRails 串接。
+* 開源 + 商用友好
+* Prompt-following 能力增強
+* 在私有部署中受歡迎
 
 ---
 
-# 🧭 Instruction Tuning / Alignment
+## Tokens / Tokenization
 
-**是什麼**
+**解釋**：
+Token 是模型處理的最小單位（可能是詞片段、子詞、符號）。Tokenization 將文字轉成模型可理解的 ID 序列。
 
-* **Instruction Tuning（SFT）**：用指令/問答資料微調，讓模型遵循指令。
-* **Alignment**：用 RLHF/DPO 等讓輸出符合人類偏好與安全。
+**重點摘要**：
 
-**例子**
-SFT：蒐集「指令→理想答案」對；RLHF：標註比較 A/B，學習偏好。
-
-**面試要點**
-
-* 何時只做 SFT？需求簡單、資料乾淨。
-* 何時做 RLHF/DPO？需要價值對齊與禮貌、拒答邊界。
+* BPE / WordPiece 常用
+* Token 數量影響推理成本與上下文長度
 
 ---
 
-# 🔡 Embeddings
+## NIM
 
-**是什麼**
-把文字/圖片轉向量，供相似度（cosine/dot）檢索、聚類、推薦、RAG。
+**解釋**：
+NVIDIA Inference Microservice，一種 **封裝推理服務** 的容器化解決方案，用於部署 LLM 或多模態模型。
 
-**例子（cosine）**
-`sim(a,b) = (a·b)/(|a||b|)`；查詢向量與文件向量最相近者即候選。
+**重點摘要**：
 
-**面試要點**
-
-* 維度/常模化/向量庫選擇（HNSW, IVF, PQ）。
-* 新鮮度：定期重嵌或混合檢索（BM25+向量）。
+* 雲端/本地可快速部署
+* 支援 Triton、TensorRT-LLM
+* 適合企業級 AI 部署
 
 ---
 
-# 🦜 Stochastic Parrot
+## Instruction Tuning / Alignment
 
-**是什麼**
-批評 LLM 僅是「統計鸚鵡」，在未理解語義下模仿語言分佈。
+**解釋**：
 
-**面試要點**
+* **Instruction tuning**：用指令-回應資料微調模型，提升遵循指令能力。
+* **Alignment**：讓模型行為符合人類價值與期望，通常包含 RLHF。
 
-* 回應方式：結合外部工具/RAG/程式執行，提升「可驗證性」。
+**重點摘要**：
 
----
-
-# 🔮 Auto-regressive Forecasting
-
-**是什麼**
-自回歸：用前序步驟預測下一步（語言模型逐 token 生成、時間序列 AR/ARIMA）。
-
-**例子**
-`P(x_t | x_{<t})`；生成直到 `<eos>` 或達長度上限。
-
-**面試要點**
-
-* 優勢：簡潔、可線上生成；
-* 代價：長序列暴增的計算（注意 KV Cache）。
+* Instruction tuning → 服從指令
+* Alignment → 安全、符合人類偏好
 
 ---
 
-# 🤖 Agentics（ReAct）與工具
+## Embeddings
 
-**是什麼**
-Agent 可規劃/選工具/反思；**ReAct** 模式：先推理（Reason）再行動（Act），並根據觀察（Observation）迭代。
+**解釋**：
+把文字或其他資料轉成高維向量，用於相似度搜尋、聚類、語義檢索。
 
-**例子（結構示意）**
+**重點摘要**：
 
-```
-Thought: 需要查匯率
-Action: 調用「匯率API」
-Observation: USD/TWD = 32.1
-Thought: 完成計算
-Final Answer: ...
-```
-
-**面試要點**
-
-* 加入「工具」類型：檢索、計算、SQL、程式執行、瀏覽。
-* 風險：工具濫用/循環；用 LangGraph 設定節點/終止條件。
+* 用於向量資料庫 + RAG
+* Cosine similarity / dot product
 
 ---
 
-# 🧠 GPT-2 / GPT-3 / ChatGPT / GPT-4
+## Stochastic Parrot
 
-**是什麼**
+**解釋**：
+比喻 LLM「像隨機鸚鵡」，僅依據機率分布複製語言樣式，沒有真正理解。
 
-* **GPT-2**：早期 Decoder-only。
-* **GPT-3**：175B，引爆少樣本學習。
-* **ChatGPT（GPT-3.5）**：對話微調與對齊。
-* **GPT-4**：更強推理、多模態。
+**重點摘要**：
 
-**面試要點**
-
-* 差異維度：參數量、對齊程度、多模態、工具使用能力。
+* 強調語言模型缺乏真實推理
+* 來源：Emily Bender 論文 (2021)
 
 ---
 
-# 🪶 Quantization（量化）
+## Auto-regressive Forecasting
 
-**是什麼**
-把 FP32 權重壓低到 FP16/INT8/INT4 以降記憶體/加速推論。方法：PTQ（GPTQ、AWQ）、QAT（訓練期量化）。
+**解釋**：
+以序列前部分預測下一步輸出（如 GPT 根據先前 token 生成下一 token）。
 
-**例子（bitsandbytes 4-bit）**
+**重點摘要**：
 
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype="float16")
-tok = AutoTokenizer.from_pretrained("meta-llama/Llama-3-8b-instruct")
-model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3-8b-instruct", quantization_config=bnb, device_map="auto")
-```
-
-**面試要點**
-
-* 取捨：速度/記憶體 vs. 精度；有時需校正或分層量化。
-* KV cache 也可量化（注意延遲/品質）。
+* 自回歸序列建模
+* 用於語言生成、時間序列預測
 
 ---
 
-# 🎙 Whisper Model
+## Agentics (ReAct) & Tools
 
-**是什麼**
-OpenAI 多語言 ASR（語音轉文字）；抗噪好，支援翻譯。
+**解釋**：
 
-**例子**
+* **Agentics**：LLM + 工具使用的智能體設計方法。
+* **ReAct**：Reason + Act 策略，模型先思考再調用工具。
 
-```python
-import whisper
-m = whisper.load_model("small")
-result = m.transcribe("meeting.mp3", task="transcribe")
-print(result["text"])
-```
+**重點摘要**：
 
-**面試要點**
-
-* 延遲 vs 準確率：模型尺寸選擇；VAD/分段策略很關鍵。
+* 工具調用、API 連接
+* ReAct：可推理 + 執行
 
 ---
 
-# 📝 T5（Text-to-Text Transfer Transformer）
+## GPT2 / GPT3 / ChatGPT / GPT4
 
-**是什麼**
-把所有任務都表述成「文字→文字」，採 Encoder-decoder。Prompt 即任務描述（如：`translate English to German:`）。
+**解釋**：
 
-**例子**
+* GPT2：2019，Transformer Decoder-only。
+* GPT3：175B 參數，強化 few-shot。
+* ChatGPT：GPT3.5 微調聊天。
+* GPT4：多模態、推理能力更強。
 
-```python
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-tok = AutoTokenizer.from_pretrained("google-t5/t5-small")
-model = AutoModelForSeq2SeqLM.from_pretrained("google-t5/t5-small")
-inp = tok("summarize: "+ long_text, return_tensors="pt")
-print(tok.decode(model.generate(**inp, max_new_tokens=80)[0], skip_special_tokens=True))
-```
+**重點摘要**：
 
-**面試要點**
-
-* 優勢：任務統一；劣勢：長輸出成本高、訓練較複雜。
+* 同屬 Decoder-only
+* GPT4：多模態 + 安全性改進
 
 ---
 
-# ⚡ Transformers 與 Self/Cross Attention
+## Quantization
 
-**是什麼**
-Transformer = 前饋+（自/交叉）注意力 + 殘差 & LayerNorm。
+**解釋**：
+將高精度浮點權重（FP32）壓縮成低位元（INT8、FP8），減少記憶體與計算成本。
 
-* **Self-Attention**：序列內互相關注。
-* **Cross-Attention**：解碼器關注編碼器輸出。
+**重點摘要**：
 
-**核心計算（可讀版）**
-`scores = (Q K^T) / sqrt(d)` → `weights = softmax(scores)` → `output = weights V`
-複雜度（self-attn）：`O(n^2 · d)`。
-
-**面試要點**
-
-* Multi-Head 的作用：分解注意力子空間，提升表徵能力。
-* 長序列：用稀疏/線性注意力或滑窗、RoPE/ALiBi。
+* GPTQ、QAT、PTQ 技術
+* 推論加速、成本降低，但精度可能下降
 
 ---
 
-# 🔑 Query / Key / Value（Q/K/V）
+## Whisper Model
 
-**是什麼**
+**解釋**：
+OpenAI 發布的自動語音辨識 (ASR) 模型，支援多語言、強大抗雜訊。
 
-* Q：我在問什麼
-* K：每個位置的「特徵索引」
-* V：要取回的內容
-  權重看 Q 與 K 的相似度，然後加權 V。
+**重點摘要**：
 
-**小例子**
-「他」在句中需靠前文「小明」的 K 來決定指涉，V 提供具體語義。
-
----
-
-# 🪞 Masking / MLM
-
-**是什麼**
-
-* **Causal Mask**：防看未來（Decoder-only 生成）。
-* **MLM（Masked LM）**：遮蔽部分 token 讓模型預測（BERT 預訓練）。
-
-**例子**
-句子：「我今天去 [MASK]」→ 模型預測「上班/學校」。
-Causal mask：上三角遮罩，位置 *t* 只能看到 `≤ t`。
-
-**面試要點**
-
-* BERT → MLM；GPT → Causal LM；T5 → Span Corruption。
+* End-to-end Transformer ASR
+* 多語言、多口音
+* 可轉錄+翻譯
 
 ---
 
-# 🤗 Hugging Face
+## T5 Model
 
-**是什麼**
-社群平台 + 工具：`transformers`、`datasets`、`evaluate`、Hub、Inference Endpoints。
+**解釋**：
+Text-to-Text Transfer Transformer，Google 提出。把所有 NLP 任務轉成「輸入文字 → 輸出文字」。
 
-**例子**
+**重點摘要**：
 
-```python
-from transformers import pipeline
-clf = pipeline("sentiment-analysis")
-clf("Battery life is surprisingly good.")
-```
-
-**面試要點**
-
-* 企業上線：私有 Model Hub、Endpoint、權限控管、審計。
+* Encoder-decoder
+* 任務統一化設計
+* 適合翻譯、摘要、問答
 
 ---
 
-# 🏛 Foundation Model
+## Transformers & Self/Cross Attention
 
-**是什麼**
-大規模預訓練、可遷移到多任務的「基座模型」（語言、視覺、語音、多模態）。
+**解釋**：
 
-**面試要點**
+* **Transformer**：以注意力機制為核心的架構。
+* **Self-attention**：序列內部 token 互相關注。
+* **Cross-attention**：解碼器關注編碼器輸出。
 
-* 二階段：預訓練→調適（SFT/RLHF/指令資料/工具化）。
+**重點摘要**：
 
----
-
-# 🐝 BERT
-
-**是什麼**
-雙向 Encoder-only；預訓練任務：**MLM + NSP**（或替代任務）。擅長理解：分類、抽取、NLI、檢索編碼器。
-
-**例子**
-問答系統中做段落檢索（Bi-Encoder）或抽取答案（Span Extraction）。
-
-**面試要點**
-
-* 與 GPT 差異：BERT 強理解、GPT 強生成。
+* 取代 RNN/CNN
+* Self-attention = 同序列
+* Cross-attention = 跨序列
 
 ---
 
-# 🔍 RAG（Retrieval-Augmented Generation）
+## Query / Key / Value
 
-**是什麼**
-先檢索→把證據與問題一起丟給 LLM→生成含引用的答案。
+**解釋**：
+注意力機制中：
 
-**示意**
+* **Query (Q)**：當前 token 的查詢向量。
+* **Key (K)**：上下文 token 的鍵向量。
+* **Value (V)**：對應的資訊向量。
 
-1. 查詢嵌入→向量庫 top-k
-2. 合成 Prompt（含引文）
-3. LLM 生成並引用段落
+**重點摘要**：
 
-**面試要點**
-
-* 常見優化：重排序（Rerank）、多跳檢索、段落分塊、路由（query routing）、答案驗證。
-* KPI：來源覆蓋率、事實性（faithfulness）、精確率/召回率。
+* Attention(Q,K,V)=softmax(QKᵀ/√dₖ)V
+* Q 比對 K，取出加權 V
 
 ---
 
-# 🧪 Hallucinations（幻覺）
+## Masking / MLM
 
-**是什麼**
-可信口吻但內容錯；常因檢索缺失、知識過時、過度補全。
+**解釋**：
 
-**緩解**
-RAG、工具執行/程式驗證、限制型提示、置信度/不確定性回報、人審。
+* **Masking**：隱藏部分輸入讓模型學習填補。
+* **MLM**：Masked Language Model，如 BERT 用 [MASK] 預測。
 
-**面試要點**
+**重點摘要**：
 
-* 面試答法：強調「可驗證管道」與防呆（Guardrails）。
-
----
-
-# 🖼 CLIP / ViT / VL
-
-**是什麼**
-
-* **CLIP**：對齊圖文嵌入（對比式學習）。
-* **ViT**：把影像切 Patch 當 Token，餵入 Transformer。
-* **VL（Vision-Language）**：圖文多模態（如 BLIP、LLaVA）。
-
-**例子**
-
-* 零樣本分類：以文字提示「一張狗的照片」去比對圖片嵌入。
-* 檢索：文字找圖/圖找文。
-
-**面試要點**
-
-* CLIP 的關鍵：共享嵌入空間（文本/圖像對齊）。
-* ViT 的關鍵：Patch Embedding + 位置編碼（常用 RoPE）。
+* 提升語義理解
+* Encoder-only 常用訓練法
 
 ---
 
-## 附錄：兩個綜合小範例
+## Hugging Face
 
-### 1) **RAG 最小可行系統（LangChain + 向量庫）**
+**解釋**：
+最大開源 AI 平台，提供 Transformers 套件、模型 Hub、Datasets。
 
-```python
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
+**重點摘要**：
 
-# 建庫
-docs = open("policy.txt","r",encoding="utf-8").read()
-chunks = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100).split_text(docs)
-emb = OpenAIEmbeddings()
-db = FAISS.from_texts(chunks, emb)
-
-# 檢索 + 生成
-retriever = db.as_retriever(search_kwargs={"k":4})
-llm = ChatOpenAI(model="gpt-4o-mini")
-qa = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, return_source_documents=True)
-res = qa("公司筆電遺失流程？")
-print(res["result"])
-for s in res["source_documents"]:
-    print("source:", s.metadata)
-```
-
-### 2) **ReAct 代理（結構示意，不含真 API）**
-
-```python
-def agent(query):
-    plan = f"為回答「{query}」需要：1) 搜索最新數據 2) 計算 3) 彙整"
-    obs1 = call_tool("web_search", query)
-    obs2 = call_tool("calculator", parse(obs1))
-    return synthesize_answer(query, obs1, obs2)
-```
+* Transformers: LLM 主力套件
+* 模型共享、生態完整
 
 ---
 
-## 快速口試錦囊
+## Foundation Model
 
-* **先定義，再說用途，最後給例子**（DEU：Definition→Employment→Use case）。
-* 論模型：**結構差異 → 訓練任務 → 典型應用 → 取捨**。
-* 論系統：**RAG/Agent** 強調「可驗證、可觀測、可維運」。
-* 論品質：談 **幻覺治理、延遲/吞吐、指標**（EM/F1、BLEU、Rouge、Faithfulness）。
+**解釋**：
+在大量多樣化資料上預訓練，可適應多任務的大型基礎模型。
+
+**重點摘要**：
+
+* 通用 + 可微調
+* LLM 與多模態模型的基礎
 
 ---
 
-如果你要，我可以把本文件**轉成投影片大綱**或**加上中英並列**版本，或加入**你面試會被問到的專案實例**（如校務/電商/產學專案場景）。
+## BERT
+
+**解釋**：
+Bidirectional Encoder Representations from Transformers，Google 推出，雙向編碼器模型。
+
+**重點摘要**：
+
+* Encoder-only
+* MLM + NSP 預訓練
+* 革新 NLP 任務表現
+
+---
+
+## RAG (Retrieval-Augmented Generation)
+
+**解釋**：
+結合外部檢索與 LLM，先找相關內容再生成答案。
+
+**重點摘要**：
+
+* 解決上下文限制
+* 提升準確度與可控性
+
+---
+
+## Hallucinations
+
+**解釋**：
+LLM 生成看似合理但實際錯誤或不存在的資訊。
+
+**重點摘要**：
+
+* 原因：缺乏真實知識、過度擬合語言模式
+* RAG / 驗證管線可減少
+
+---
+
+## CLIP / ViT / VLM / Diffusion
+
+**解釋**：
+
+* **CLIP**：對齊圖像與文字嵌入，解決 modality gap。
+* **ViT**：Vision Transformer，影像版 Transformer。
+* **VLM**：Vision-Language Model，多模態理解。
+* **Diffusion**：逐步去噪生成影像的模型（如 Stable Diffusion）。
+
+**重點摘要**：
+
+* CLIP → 圖文對齊
+* ViT → 影像特徵抽取
+* VLM → 多模態推理
+* Diffusion → 文生圖主流技術
+
+
+
+
+---
+
+
