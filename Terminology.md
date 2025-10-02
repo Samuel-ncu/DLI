@@ -1,4 +1,4 @@
-- [LlamaIndex](#LlamaIndex)
+- LlamaIndex
 - Encoder-only, encoder-decoder,decoder-only
 - Zero / One / Few shot
 - LangChain

@@ -20,12 +20,14 @@
 
 ## 2) 公式（回顧）
 多頭注意力：
+
 $$
 \mathrm{MHA}(Q,K,V)
 = \mathrm{Concat}_i\big(\mathrm{Attn}(QW_Q^{(i)},KW_K^{(i)},VW_V^{(i)})\big)\,W_O
 $$
 
 單頭縮放點積注意力：
+
 $$
 \mathrm{Attn}(Q,K,V)=\mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+\mathrm{mask}\right)V
 $$

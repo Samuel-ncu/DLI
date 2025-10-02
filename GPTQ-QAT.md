@@ -48,9 +48,11 @@ $$
 3. **分組近似**：分成小區塊計算，降低記憶體成本。
 
 實務上：
+
 $$
 H \approx \frac{1}{N} X^T X
 $$
+
 其中 \(X\) 為校準資料在該層的輸入特徵。
 
 > ✅ GPTQ 用這個近似 Hessian 來判斷哪些權重最重要，先保護重要權重，減少量化誤差。
@@ -102,6 +104,7 @@ model.save_quantized("opt-1.3b-gptq")
 #### 前向傳遞 (Forward)
 
 模擬量化：
+
 $$
 \hat{x} = \text{clamp}\big(\text{round}(x / s), q_{\min}, q_{\max}\big) \cdot s
 $$
@@ -112,6 +115,7 @@ $$
 #### 反向傳遞 (Backward)
 
 `round()` 不可微，QAT 用 **STE** 近似：
+
 $$
 \frac{\partial \hat{x}}{\partial x} \approx 1
 $$

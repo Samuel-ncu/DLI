@@ -82,6 +82,7 @@ $$
 ## 5. Multi-Head Attention（多頭注意力）
 
 將表示空間切成多個子空間，各頭分別計算注意力後再拼接：
+
 $$
 \mathrm{MHA}(Q,K,V)
 = \mathrm{Concat}\Big(\mathrm{Attn}(QW_Q^{(i)},KW_K^{(i)},VW_V^{(i)})\Big)_i \, W_O

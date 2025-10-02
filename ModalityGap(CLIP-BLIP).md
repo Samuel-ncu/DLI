@@ -134,31 +134,37 @@ CLIP 使用 **對比損失 (InfoNCE)**，同時對影像到文字、文字到影
 假設一個 batch 有 \(N\) 對圖文 \((x_i, t_i)\)：  
 
 - 圖像特徵  
+
 $$
 v_i = f_{\text{img}}(x_i)
 $$  
 
 - 文字特徵  
+
 $$
 u_i = f_{\text{txt}}(t_i)
 $$  
 
 - Cosine similarity  
+
 $$
 s_{ij} = \frac{v_i \cdot u_j}{\|v_i\|\|u_j\|}
 $$  
 
 - 影像到文字的損失  
+
 $$
 L_{\text{img}\to \text{text}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{\exp(s_{ii}/\tau)}{\sum_{j=1}^N \exp(s_{ij}/\tau)}
 $$  
 
 - 文字到影像的損失  
+
 $$
 L_{\text{text}\to \text{img}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{\exp(s_{ii}/\tau)}{\sum_{j=1}^N \exp(s_{ji}/\tau)}
 $$  
 
 - 總損失  
+
 $$
 L = \frac{1}{2}\Big(L_{\text{img}\to \text{text}} + L_{\text{text}\to \text{img}}\Big)
 $$  
@@ -233,31 +239,37 @@ OpenAI 在 2021 年提出 **CLIP**，希望：
 假設 batch 大小為 \(N\)：
 
 - 圖像特徵：
+
 $$
 v_i = f_{\text{img}}(x_i)
 $$
 
 - 文字特徵：
+
 $$
 u_i = f_{\text{txt}}(t_i)
 $$
 
 - Cosine 相似度：
+
 $$
 s_{ij} = \frac{v_i \cdot u_j}{\|v_i\|\|u_j\|}
 $$
 
 - 圖像→文字方向：
+
 $$
 L_{\text{img}\to \text{text}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{\exp(s_{ii}/\tau)}{\sum_{j=1}^N \exp(s_{ij}/\tau)}
 $$
 
 - 文字→圖像方向：
+
 $$
 L_{\text{text}\to \text{img}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{\exp(s_{ii}/\tau)}{\sum_{j=1}^N \exp(s_{ji}/\tau)}
 $$
 
 - 總損失：
+
 $$
 L = \frac{1}{2}\Big(L_{\text{img}\to \text{text}} + L_{\text{text}\to \text{img}}\Big)
 $$

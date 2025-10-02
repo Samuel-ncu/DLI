@@ -23,6 +23,7 @@ $$
 ### 2.1 形式
 
 常見連續控制策略：
+
 $$
 \pi_\theta(a|s)=\mathcal{N}\!\big(a\;|\;\mu_\theta(s),\Sigma_\theta(s)\big),\quad
 a=\tanh(\tilde a),~\tilde a\sim \mathcal{N}(\mu_\theta,\Sigma_\theta)
@@ -31,6 +32,7 @@ $$
 ### 2.2 訓練方法
 
 - **Policy Gradient (REINFORCE)**：
+
 $$
 \nabla_\theta J = \mathbb{E}\big[\nabla_\theta \log \pi_\theta(a_t|s_t)\,\hat A_t\big]
 $$
@@ -43,6 +45,7 @@ $$
     $$
 
 - **行為克隆 (Behavior Cloning)**：
+
 $$
 \max_\theta \mathbb{E}_{(s,a)\sim \mathcal{D}}\,[\log\pi_\theta(a|s)]
 $$
@@ -63,11 +66,13 @@ $$
 將動作或整段軌跡視為條件生成任務，用 **擴散模型** 逐步去噪生成。
 
 前向加噪：
+
 $$
 q(x_t|x_{t-1})=\mathcal{N}(x_t|\sqrt{1-\beta_t}x_{t-1},\beta_tI)
 $$
 
 訓練降噪器：
+
 $$
 \mathcal{L}_{\text{diff}}=\mathbb{E}_{t,x_0,\epsilon}\big[\|\epsilon-\epsilon_\theta(x_t,t;\text{cond})\|_2^2\big]
 $$
@@ -82,6 +87,7 @@ $$
 ### 3.3 引導方法
 
 - **Classifier-Free Guidance (CFG)**：
+
 $$
 \hat\epsilon=\epsilon_\theta(x_t,t;\varnothing)+w[\epsilon_\theta(x_t,t;\text{cond})-\epsilon_\theta(x_t,t;\varnothing)]
 $$
@@ -166,10 +172,12 @@ $$
 * **Diffusion Policy = 具體實作**
 
   * 讓 (\pi_\theta) 的形式改成擴散生成器：
+    
     $$
     \pi_\theta(a_{t:t+H-1}|o) = p_\theta(x_0|o)
     $$
-    其中 (x_0) 是動作序列，透過反向擴散逐步生成。
+
+  其中 (x_0) 是動作序列，透過反向擴散逐步生成。
 
 * **Policy Gradient 仍可用**
 

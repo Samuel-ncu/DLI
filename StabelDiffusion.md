@@ -21,6 +21,7 @@ Stable Diffusion 是 **Latent Diffusion Model (LDM)**：
 ## 2. 數學基礎
 
 ### 2.1 前向擴散
+
 $$
 q(\mathbf{x}_t|\mathbf{x}_0)=
 \mathcal{N}\bigl(\mathbf{x}_t;\sqrt{\bar{\alpha}_t}\mathbf{x}_0,(1-\bar{\alpha}_t)\mathbf{I}\bigr)
@@ -32,6 +33,7 @@ $$
 $$
 
 ### 2.2 反向去噪
+
 $$
 p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)=
 \mathcal{N}\bigl(\mathbf{x}_{t-1};\mu_\theta(\mathbf{x}_t,t),\sigma_t^2\mathbf{I}\bigr)
@@ -51,6 +53,7 @@ $$
 - **U-Net**：在潛在空間去噪
 - **Cross-Attention**：文字條件注入影像特徵
 - **Classifier-Free Guidance (CFG)**：控制 prompt 遵從度  
+  
   $$
   \hat{\epsilon}=\epsilon_\text{uncond}+w(\epsilon_\text{cond}-\epsilon_\text{uncond})
   $$
@@ -68,6 +71,7 @@ $$
 - **文字編碼器**：SD1.x / 2.x 使用 CLIP Text Encoder（如 ViT-L/14）；SDXL 用雙文本編碼器（OpenCLIP + CLIP）。
 - Prompt 經 CLIP 轉成文字特徵向量 \(c\)。
 - **U-Net 中的 Cross-Attention** 以 \(c\) 作為 `Key` / `Value`，將語意注入影像特徵：
+  
   $$
   \text{Attention}(Q,K,V)=\mathrm{softmax}\left(\frac{QK^\top}{\sqrt{d}}\right)V
   $$
