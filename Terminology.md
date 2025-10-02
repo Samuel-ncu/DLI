@@ -137,6 +137,21 @@ LangChain Expression Language (LCEL) 的核心概念。Runnable 是可組合的�
 * 支援 Pipeline 式組合
 * 是 LangChain 新一代 API 核心
 
+
+| 特性 | **傳統 Chain API (如 SequentialChain)** | **LCEL (LangChain Expression Language)** |
+|------|----------------------------------------|-------------------------------------------|
+| **組裝方式** | 以 **類別繼承** 或 **明確宣告 step**，例如 `SequentialChain([step1, step2])` | 以 **運算子 `\|`** 串接，如 `prompt | llm | parser` |
+| **可讀性** | 需要看清每個 Chain 物件的初始化與執行順序 | 像管線 (pipeline) 一樣直觀；單行即可看出流程 |
+| **彈性** | 僅支援線性組合，複雜邏輯需寫 Python 代碼 | 原生支援 **並行 (RunnableParallel)、條件分支 (RunnableBranch)**、動態路由 |
+| **型別系統** | 較寬鬆，缺乏標準化輸入輸出 | 每個 `Runnable` 定義明確 input/output schema，易於組合與重用 |
+| **動態行為** | 需手動編寫 Python if/else 來決定路由 | 內建 `RunnableBranch`、`RunnableMap` 等物件做動態路由 |
+| **非同步支援** | 有但較分散 (`arun` / `acall`) | `invoke` / `ainvoke` 同一接口支援同步/非同步 |
+| **Debug / 監控** | 難以在中間步驟插入監控或調試 | 每個 Runnable 可單獨測試、鏈式 debug，更易監控 |
+| **擴展性** | 要新增複雜結構需自定義 Chain 類別 | 以組合方式即可快速擴展，不需繼承類別 |
+
+
+
+
 ---
 
 ## LangGraph
@@ -380,6 +395,33 @@ Text-to-Text Transfer Transformer，Google 提出。把所有 NLP 任務轉成�
 * 通用 + 可微調
 * LLM 與多模態模型的基礎
 
+
+
+```mermaid
+mindmap
+  root((Foundation Models))
+    NLP
+      GPT-3 / GPT-4
+      ChatGPT
+      BERT / RoBERTa
+      T5
+      LLaMA / LLaMA-2 / LLaMA-3
+    Computer Vision (CV)
+      Vision Transformer (ViT)
+      DINOv2
+      EfficientNet (早期)
+    Multi-Modal
+      CLIP
+      Flamingo
+      ImageBind
+    Audio / Speech
+      Whisper
+      wav2vec 2.0
+    Generative Image
+      Stable Diffusion
+      DALL·E
+      Imagen
+```
 ---
 
 ## BERT
