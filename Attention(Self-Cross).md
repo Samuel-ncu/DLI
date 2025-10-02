@@ -20,6 +20,7 @@
 **核心想法**：用「查詢」(Query, **Q**) 比對「鍵」(Key, **K**)，得到權重，對「值」(Value, **V**) 做加權平均得到輸出。
 
 **Scaled Dot-Product Attention：**
+
 $$
 \mathrm{Attn}(Q,K,V)
 = \mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}} + \mathrm{mask}\right)V
