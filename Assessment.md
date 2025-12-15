@@ -87,85 +87,35 @@ print(description)
 from diffusers import DiffusionPipeline
 import torch
 
-_PIPE = None
+pipe = DiffusionPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16,
+    use_safetensors=True,
+    variant="fp16",
+).to("cuda")
 
-def generate_images(prompt: str, n: int = 1):
+
+## TODO: Consider initializing your diffusion pipeline outside of generate_images
+
+## TODO: Implement this method
+def generate_images(prompt):
     ####################################################################
     ## < EXERCISE SCOPE
+    
+    images = pipe(prompt=prompt).images
 
-    global _PIPE
+    return images 
+    ## EXERCISE SCOPE >
+    ####################################################################
+description = "The image presents a diagram illustrating the relationship between an agent and various components of memory and tools. The diagram is structured with a central rectangle labeled 'Agent,' which is connected to several other elements. On the left side, there are three rectangles representing 'Short-term memory,' 'Memory,' and 'Tools,' each with a list of items beneath them. 'Short-term memory' includes 'Calendar ()', 'Calculator ()', and 'CodeInterpreter ()', while 'Memory' has 'Long-term memory' and '...more' listed. 'Tools' is connected to 'Action' and 'Planning.' On the right side, there are three rectangles labeled 'Reflection,' 'Self-critics,' and 'Chain of thoughts,' which are connected to 'Planning.' Additionally, there is a rectangle labeled 'Subgoal decomposition' connected to 'Action.' The connections between the elements are depicted with solid and dashed lines, indicating different types of relationships."
 
-    # 1) Use an available text model (from your /v1/models list) to turn description -> diffusion prompt
-    # assumes you already created `llm = ChatNVIDIA(...)` with an available model id.
-    synth = llm.invoke(
-        "Convert the following image description into a single, keyword-rich diffusion prompt. "
-        "Include subject, setting, composition, lighting, camera/lens style, and quality tags. "
-        "Do NOT add extra sentences. Output ONE line only.\n\n"
-        f"DESCRIPTION:\n{prompt}\n\nDIFFUSION PROMPT:"
-    )
-    diffusion_prompt = getattr(synth, "content", str(synth)).strip()
-
-    # 2) Load a diffusion model (separate from /v1/models list)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.float16 if device == "cuda" else torch.float32
-
-    model_id_candidates = [
-        "runwayml/stable-diffusion-v1-5",
-        "stabilityai/stable-diffusion-2-1",
-        "stabilityai/stable-diffusion-xl-base-1.0",
-    ]
-
-    if _PIPE is None:
-        last_err = None
-        for mid in model_id_candidates:
-            try:
-                _PIPE = DiffusionPipeline.from_pretrained(mid, torch_dtype=dtype)
-                break
-            except Exception as e:
-                last_err = e
-                _PIPE = None
-        if _PIPE is None:
-            raise RuntimeError(f"Failed to load a diffusion model. Last error: {last_err}")
-
-        _PIPE = _PIPE.to(device)
-        try:
-            _PIPE.enable_attention_slicing()
-        except Exception:
-            pass
-
-    # 3) Generate and save images
-    gen = torch.Generator(device=device).manual_seed(0) if device == "cuda" else None
-
-    paths = []
-    for i in range(n):
-        out = _PIPE(
-            diffusion_prompt,
-            num_inference_steps=30,
-            guidance_scale=7.5,
-            generator=gen,
-        )
-        img = out.images[0]
-        path = f"gen_{i}.png"
-        img.save(path)
-        paths.append(path)
-
-    return paths
 
     ## EXERCISE SCOPE >
     ####################################################################
-import matplotlib.pyplot as plt
-
-def plot_imgs(image_paths, r=2, c=2):
-    fig, axes = plt.subplots(r, c)
-    for i, ax in enumerate(getattr(axes, "flat", [axes])):
-        img = plt.imread(image_paths[i])
-        ax.imshow(img)
-        ax.axis('off')
-    plt.tight_layout()
-    plt.show()
 
 images = generate_images(description)
-plot_imgs(images, 1, 1)
+for img in images:
+    img.show()
 ```
 
 # [Task 3] Prompt Synthesis
