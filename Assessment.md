@@ -123,51 +123,27 @@ for img in images:
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
-    ####################################################################
-    ## < EXERCISE SCOPE
+####################################################################
+## < EXERCISE SCOPE
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-         "You are a prompt engineer for text-to-image diffusion models (e.g., Stable Diffusion / SDXL). "
-         "Rewrite the user's description into high-quality, keyword-rich diffusion prompts. "
-         "Each prompt must be ONE LINE ONLY, no numbering, no quotes, no bullets, no extra commentary."),
-        ("user",
-         "User description:\n{user_query}\n\n"
-         "Generate exactly {n} distinct diffusion prompts. "
-         "Each line should include: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
-         "Avoid unsafe content. Output ONLY the {n} lines.")
-    ])
+prompt_tmpl = ChatPromptTemplate.from_messages([
+    ("system",
+     "You are a prompt engineer for text-to-image diffusion models (Stable Diffusion / SDXL). "
+     "Convert the user's description into ONE high-quality, keyword-rich diffusion prompt. "
+     "Return ONE LINE ONLY (no bullets, no numbering, no quotes, no explanations)."),
+    ("user",
+     "User description:\n{desc}\n\n"
+     "Write a diffusion prompt including: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
+     "Output only the prompt line.")
+])
 
-    chain = prompt | llm | StrOutputParser()
-    text = chain.invoke({"user_query": user_query, "n": n})
+diff_prompt_chain = prompt_tmpl | llm | StrOutputParser()
 
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    # If the model accidentally returns numbered lines, strip common prefixes
-    cleaned = []
-    for ln in lines:
-        # remove leading "1. ", "- ", etc. without regex/imports
-        while ln and (ln[0] in "-•"):
-            ln = ln[1:].strip()
-        if len(ln) >= 3 and ln[0].isdigit() and ln[1] in ".)" and ln[2] == " ":
-            ln = ln[3:].strip()
-        cleaned.append(ln)
+## EXERCISE SCOPE >
+####################################################################
 
-    sd_prompts = cleaned[:n]
-    while len(sd_prompts) < n:
-        sd_prompts.append(sd_prompts[-1] if sd_prompts else user_query)
-
-    assert len(sd_prompts) == n
-    return sd_prompts
-
-    ## EXERCISE SCOPE >
-    ####################################################################
-
-new_sd_prompts = llm_rewrite_to_image_prompts(description, n=4)
-
-print("type(new_sd_prompts) =", type(new_sd_prompts))
-print("len(new_sd_prompts) =", len(new_sd_prompts))
-print("new_sd_prompts =", new_sd_prompts)
+new_diff_prompt = ""  # keep this line as requested
+new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
 ```
 
 # [Task 4] Pipelining and Iterating
