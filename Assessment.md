@@ -148,77 +148,139 @@ new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
 
 # [Task 4] Pipelining and Iterating
 ```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
+    ####################################################################
+    ## < EXERCISE SCOPE
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         "You write prompts for text-to-image diffusion models (Stable Diffusion / SDXL). "
+         "Return ONE LINE per prompt. No numbering/bullets/quotes/explanations."),
+        ("user",
+         "Image description:\n{desc}\n\n"
+         "Generate exactly {n} distinct diffusion prompts. "
+         "Each line should include: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
+         "Output ONLY the {n} lines.")
+    ])
+
+    chain = prompt | llm | StrOutputParser()
+    text = chain.invoke({"desc": user_query, "n": n})
+
+    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+
+    # normalize if model adds bullets/numbering
+    cleaned = []
+    for ln in lines:
+        while ln and ln[0] in "-•":
+            ln = ln[1:].strip()
+        if len(ln) >= 3 and ln[0].isdigit() and ln[1] in ".)" and ln[2] == " ":
+            ln = ln[3:].strip()
+        cleaned.append(ln)
+
+    sd_prompts = cleaned[:n]
+    while len(sd_prompts) < n:
+        sd_prompts.append(sd_prompts[-1] if sd_prompts else (user_query or "a high quality image"))
+
+    assert len(sd_prompts) == n
+    return sd_prompts
+
+    ## EXERCISE SCOPE >
+    ####################################################################
+
+
 ## TODO: Execute on assessment objective
 def generate_images_from_image(image_url: str, num_images = 4):
-
-    print(f"Generating images for {image_url}")
 
     ####################################################################
     ## < EXERCISE SCOPE
 
-    # 1) VLM: image -> description
-    # (uses your existing ask_about_image; make sure it points to a vision model id that exists)
+    # [TODO 1] Generate the description of the image provided in image_url
     original_description = ask_about_image(image_url, "Describe the image in detail")
 
-    # 2) LLM: description -> N synthetic diffusion prompts
-    diffusion_prompts = llm_rewrite_to_image_prompts(original_description, n=num_images)
+    # [TODO 2] Generate four disjoint prompts, hopefully different, to feed into SDXL
+    try:
+        diffusion_prompts = llm_rewrite_to_image_prompts(original_description, n=num_images)
+        if not isinstance(diffusion_prompts, list) or len(diffusion_prompts) != num_images:
+            raise ValueError("Bad diffusion_prompts")
+    except Exception:
+        base = (original_description or "").strip().replace("\n", " ")
+        if not base:
+            base = "a high quality photo of an interesting subject"
+        diffusion_prompts = [
+            f"{base}, cinematic wide shot, environment detail, soft volumetric lighting, ultra detailed, sharp focus, high quality",
+            f"{base}, close-up, shallow depth of field, bokeh, portrait composition, ultra detailed, sharp focus, high quality",
+            f"{base}, top-down composition, clean shapes, high clarity, studio lighting, ultra detailed, sharp focus, high quality",
+            f"{base}, dramatic angle, high contrast lighting, stylized artistic look, ultra detailed, sharp focus, high quality",
+        ][:num_images]
+        while len(diffusion_prompts) < num_images:
+            diffusion_prompts.append(diffusion_prompts[-1])
 
-    # 3) Diffusion: prompts -> images (return PIL Images)
-    generated_images = []      # PIL Images to return
-    generated_paths = []       # optional: file paths for plotting if plot_imgs expects paths
+    # [TODO 3] Generate the resulting images
+    generated_images = []
+    generated_paths = []
 
-    # generate_images(...) from Task 2 returns file paths in our earlier implementation.
-    # We'll convert to PIL so this function returns PIL images as requested.
     try:
         from PIL import Image
     except Exception:
         Image = None
 
-    for i, sd_prompt in enumerate(diffusion_prompts):
-        outs = generate_images(sd_prompt, n=1)  # may return [path] or [PIL]
+    for p in diffusion_prompts:
+        try:
+            outs = generate_images(p)  # generate_images(prompt) -> [PIL] or [filepath]
+        except Exception:
+            outs = []
 
         if not outs:
             continue
 
         first = outs[0]
+
         if hasattr(first, "save") and hasattr(first, "size"):
-            # looks like a PIL image already
+            # PIL Image
             generated_images.append(first)
-            # also save a copy for plotting if needed
             try:
-                p = f"gen_task4_{i}.png"
-                first.save(p)
-                generated_paths.append(p)
+                path = f"gen_{len(generated_images)}.png"
+                first.save(path)
+                generated_paths.append(path)
             except Exception:
                 pass
+
         elif isinstance(first, str):
-            # it's a file path
+            # filepath
             generated_paths.append(first)
             if Image is not None:
-                generated_images.append(Image.open(first).convert("RGB"))
-        else:
-            # unknown type; best-effort ignore
-            pass
+                try:
+                    generated_images.append(Image.open(first).convert("RGB"))
+                except Exception:
+                    pass
 
-    # 4) Display (works whether plot_imgs expects paths or PILs)
+    # Display (best-effort)
     try:
-        plot_imgs(generated_images)  # if plot_imgs supports PIL
+        plot_imgs(generated_paths, r=2, c=2)  # if plot_imgs expects paths
     except Exception:
         try:
-            plot_imgs(generated_paths)  # if plot_imgs expects paths
+            from IPython.display import display
+            for im in generated_images:
+                display(im)
         except Exception:
             pass
-
-    return generated_images, diffusion_prompts, original_description
 
     ## EXERCISE SCOPE >
     ####################################################################
 
+    return generated_images, diffusion_prompts, original_description
+
+
+# Run
 results = []
 results += [generate_images_from_image("imgs/agent-overview.png")]
 results += [generate_images_from_image("imgs/multimodal.png")]
 results += [generate_images_from_image("img-files/tree-frog.jpg")]
 results += [generate_images_from_image("img-files/paint-cat.jpg")]
+
 ```
 
 
