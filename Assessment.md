@@ -120,36 +120,11 @@ for img in images:
 
 # [Task 3] Prompt Synthesis
 ```python
+import os
+import matplotlib.pyplot as plt
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-####################################################################
-## < EXERCISE SCOPE
-
-prompt_tmpl = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are a prompt engineer for text-to-image diffusion models (Stable Diffusion / SDXL). "
-     "Convert the user's description into ONE high-quality, keyword-rich diffusion prompt. "
-     "Return ONE LINE ONLY (no bullets, no numbering, no quotes, no explanations)."),
-    ("user",
-     "User description:\n{desc}\n\n"
-     "Write a diffusion prompt including: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
-     "Output only the prompt line.")
-])
-
-diff_prompt_chain = prompt_tmpl | llm | StrOutputParser()
-
-## EXERCISE SCOPE >
-####################################################################
-
-new_diff_prompt = ""  # keep this line as requested
-new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
-```
-
-# [Task 4] Pipelining and Iterating
-```python
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
     ####################################################################
@@ -158,7 +133,7 @@ def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
     prompt = ChatPromptTemplate.from_messages([
         ("system",
          "You write prompts for text-to-image diffusion models (Stable Diffusion / SDXL). "
-         "Return ONE LINE per prompt. No numbering/bullets/quotes/explanations."),
+         "Output EXACTLY N lines. Each line is ONE prompt. No numbering/bullets/quotes/explanations."),
         ("user",
          "Image description:\n{desc}\n\n"
          "Generate exactly {n} distinct diffusion prompts. "
@@ -167,7 +142,15 @@ def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
     ])
 
     chain = prompt | llm | StrOutputParser()
-    text = chain.invoke({"desc": user_query, "n": n})
+
+    text = ""
+    for _ in range(2):  # retry twice to reduce backend timeout impact
+        try:
+            text = chain.invoke({"desc": user_query, "n": n})
+            if text:
+                break
+        except Exception:
+            text = ""
 
     lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
 
@@ -181,8 +164,26 @@ def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
         cleaned.append(ln)
 
     sd_prompts = cleaned[:n]
+
+    # fallback prompts if LLM failed/timeout/empty
+    if len(sd_prompts) < n:
+        base = (user_query or "").strip().replace("\n", " ")
+        if not base:
+            base = "a high quality photo of an interesting subject"
+        fallback = [
+            f"{base}, cinematic wide shot, environment detail, soft volumetric lighting, ultra detailed, sharp focus, high quality",
+            f"{base}, close-up, shallow depth of field, bokeh, portrait composition, ultra detailed, sharp focus, high quality",
+            f"{base}, top-down composition, clean shapes, high clarity, studio lighting, ultra detailed, sharp focus, high quality",
+            f"{base}, dramatic angle, high contrast lighting, stylized artistic look, ultra detailed, sharp focus, high quality",
+        ]
+        # append until length n
+        for f in fallback:
+            if len(sd_prompts) >= n:
+                break
+            sd_prompts.append(f)
+
     while len(sd_prompts) < n:
-        sd_prompts.append(sd_prompts[-1] if sd_prompts else (user_query or "a high quality image"))
+        sd_prompts.append(sd_prompts[-1])
 
     assert len(sd_prompts) == n
     return sd_prompts
@@ -191,86 +192,88 @@ def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
     ####################################################################
 
 
+def _show_paths_grid(image_paths: list[str], r=2, c=2, title=None):
+    """Display images from file paths (best-effort)."""
+    if not image_paths:
+        print("No images to display.")
+        return
+    n = len(image_paths)
+    fig, axes = plt.subplots(r, c, figsize=(4*c, 4*r))
+    axes_list = getattr(axes, "flat", [axes])
+    for i, ax in enumerate(axes_list):
+        ax.axis("off")
+        if i < n:
+            try:
+                img = plt.imread(image_paths[i])
+                ax.imshow(img)
+                ax.set_title(f"{i+1}", fontsize=10)
+            except Exception:
+                ax.set_title(f"Failed: {image_paths[i]}", fontsize=8)
+    if title:
+        fig.suptitle(title, fontsize=12)
+    plt.tight_layout()
+    plt.show()
+
+
 ## TODO: Execute on assessment objective
 def generate_images_from_image(image_url: str, num_images = 4):
 
     ####################################################################
     ## < EXERCISE SCOPE
 
-    # [TODO 1] Generate the description of the image provided in image_url
+    ## TODO 1: Generate the description of the image provided in image_url
     original_description = ask_about_image(image_url, "Describe the image in detail")
 
-    # [TODO 2] Generate four disjoint prompts, hopefully different, to feed into SDXL
-    try:
-        diffusion_prompts = llm_rewrite_to_image_prompts(original_description, n=num_images)
-        if not isinstance(diffusion_prompts, list) or len(diffusion_prompts) != num_images:
-            raise ValueError("Bad diffusion_prompts")
-    except Exception:
-        base = (original_description or "").strip().replace("\n", " ")
-        if not base:
-            base = "a high quality photo of an interesting subject"
-        diffusion_prompts = [
-            f"{base}, cinematic wide shot, environment detail, soft volumetric lighting, ultra detailed, sharp focus, high quality",
-            f"{base}, close-up, shallow depth of field, bokeh, portrait composition, ultra detailed, sharp focus, high quality",
-            f"{base}, top-down composition, clean shapes, high clarity, studio lighting, ultra detailed, sharp focus, high quality",
-            f"{base}, dramatic angle, high contrast lighting, stylized artistic look, ultra detailed, sharp focus, high quality",
-        ][:num_images]
-        while len(diffusion_prompts) < num_images:
-            diffusion_prompts.append(diffusion_prompts[-1])
+    ## TODO 2: Generate four disjoint prompts, hopefully different, to feed into SDXL
+    diffusion_prompts = llm_rewrite_to_image_prompts(original_description, n=num_images)
 
-    # [TODO 3] Generate the resulting images
-    generated_images = []
-    generated_paths = []
+    ## TODO 3: Generate the resulting images
+    # IMPORTANT: must return PATH STRINGS so send_metadata() can do .replace()
+    # Save locally as needed.
+    save_dir = "/dli/task/generated_images" if os.path.exists("/dli/task") else "generated_images"
+    os.makedirs(save_dir, exist_ok=True)
 
-    try:
-        from PIL import Image
-    except Exception:
-        Image = None
+    generated_images = []  # list[str] paths
 
-    for p in diffusion_prompts:
-        try:
-            outs = generate_images(p)  # generate_images(prompt) -> [PIL] or [filepath]
-        except Exception:
-            outs = []
+    for i, p in enumerate(diffusion_prompts):
+        outs = []
+        for _ in range(2):  # retry per prompt
+            try:
+                outs = generate_images(p)  # -> [filepath] OR [PIL Image]
+                if outs:
+                    break
+            except Exception:
+                outs = []
 
         if not outs:
             continue
 
         first = outs[0]
 
-        if hasattr(first, "save") and hasattr(first, "size"):
-            # PIL Image
+        # Case A: already a filepath
+        if isinstance(first, str):
             generated_images.append(first)
+            continue
+
+        # Case B: PIL image -> save to path
+        if hasattr(first, "save") and hasattr(first, "size"):
+            out_path = os.path.join(save_dir, f"task4_{os.path.basename(image_url).replace('.','_')}_{i}.png")
             try:
-                path = f"gen_{len(generated_images)}.png"
-                first.save(path)
-                generated_paths.append(path)
+                first.save(out_path)
+                generated_images.append(out_path)
             except Exception:
                 pass
 
-        elif isinstance(first, str):
-            # filepath
-            generated_paths.append(first)
-            if Image is not None:
-                try:
-                    generated_images.append(Image.open(first).convert("RGB"))
-                except Exception:
-                    pass
+    # Ensure we have up to num_images paths (best-effort; do not crash)
+    if len(generated_images) > num_images:
+        generated_images = generated_images[:num_images]
 
-    # Display (best-effort)
-    try:
-        plot_imgs(generated_paths, r=2, c=2)  # if plot_imgs expects paths
-    except Exception:
-        try:
-            from IPython.display import display
-            for im in generated_images:
-                display(im)
-        except Exception:
-            pass
+    # Display images (2x2 grid recommended)
+    _show_paths_grid(generated_images, r=2, c=2, title=os.path.basename(image_url))
 
     ## EXERCISE SCOPE >
     ####################################################################
-
+        
     return generated_images, diffusion_prompts, original_description
 
 
