@@ -79,6 +79,7 @@ def ask_about_image(image_path: str, question: str = "Describe the image") -> st
     ####################################################################
  
 description = ask_about_image("./imgs/agent-overview.png", "Describe the image")
+print(description)
 ```
 
 # [Task 2] Image Creation
