@@ -122,10 +122,12 @@ for img in images:
 ```python
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+import matplotlib.pyplot as plt
 
 ####################################################################
 ## < EXERCISE SCOPE
 
+# 1) Prompt template: description -> ONE diffusion prompt (one line)
 prompt_tmpl = ChatPromptTemplate.from_messages([
     ("system",
      "You are a prompt engineer for text-to-image diffusion models (Stable Diffusion / SDXL). "
@@ -137,23 +139,61 @@ prompt_tmpl = ChatPromptTemplate.from_messages([
      "Output only the prompt line.")
 ])
 
+# 2) Chain: template -> llm -> string
 diff_prompt_chain = prompt_tmpl | llm | StrOutputParser()
+
+# 3) Emphasis variants (to create multiple prompts)
+emphases = [
+    "cinematic wide shot, environment detail, soft volumetric lighting",
+    "close-up, shallow depth of field, bokeh, portrait composition",
+    "top-down / isometric composition, clean shapes, high clarity",
+    "dramatic angle, high contrast lighting, stylized artistic look",
+]
+
+# 4) Build 4 synthetic prompts from an image description string `description`
+new_sd_prompts = []
+for e in emphases:
+    p = diff_prompt_chain.invoke({"desc": f"{description}\n\nEmphasis: {e}"}).strip()
+    new_sd_prompts.append(p)
+
+print("len(new_sd_prompts) =", len(new_sd_prompts))
+for i, p in enumerate(new_sd_prompts, 1):
+    print(f"{i}. {p}")
+
+# 5) (Optional) single prompt version
+new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
 
 ## EXERCISE SCOPE >
 ####################################################################
 
-# example usage: assume you already have an image description string
-# (e.g., from ask_about_image(...))
-new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
 
-images = generate_images(new_diff_prompt)
-for img in images:
-    try:
-        img.show()
-    except Exception:
-        # if generate_images returns file paths
-        from PIL import Image
-        Image.open(img).show()
+# Utility: display images returned as file paths OR PIL images
+def plot_imgs(image_paths_or_pils, r=2, c=2):
+    fig, axes = plt.subplots(r, c, figsize=(4*c, 4*r))
+    axes_list = getattr(axes, "flat", [axes])
+
+    for i, ax in enumerate(axes_list):
+        ax.axis("off")
+        if i >= len(image_paths_or_pils):
+            continue
+
+        item = image_paths_or_pils[i]
+
+        # Case A: filepath
+        if isinstance(item, str):
+            img = plt.imread(item)
+            ax.imshow(img)
+
+        # Case B: PIL image
+        elif hasattr(item, "size") and hasattr(item, "mode"):
+            ax.imshow(item)
+
+        else:
+            ax.set_title("Unsupported type")
+
+    plt.tight_layout()
+    plt.show()
+
 ```
 
 # [Task 4] Pipelining and Iterating
