@@ -120,6 +120,47 @@ for img in images:
 
 # [Task 3] Prompt Synthesis
 ```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+####################################################################
+## < EXERCISE SCOPE
+
+prompt_tmpl = ChatPromptTemplate.from_messages([
+    ("system",
+     "You are a prompt engineer for text-to-image diffusion models (Stable Diffusion / SDXL). "
+     "Convert the user's description into ONE high-quality, keyword-rich diffusion prompt. "
+     "Return ONE LINE ONLY (no bullets, no numbering, no quotes, no explanations)."),
+    ("user",
+     "User description:\n{desc}\n\n"
+     "Write a diffusion prompt including: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
+     "Output only the prompt line.")
+])
+
+diff_prompt_chain = prompt_tmpl | llm | StrOutputParser()
+
+## EXERCISE SCOPE >
+####################################################################
+
+# example usage: assume you already have an image description string
+# (e.g., from ask_about_image(...))
+new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
+
+images = generate_images(new_diff_prompt)
+for img in images:
+    try:
+        img.show()
+    except Exception:
+        # if generate_images returns file paths
+        from PIL import Image
+        Image.open(img).show()
+```
+
+# [Task 4] Pipelining and Iterating
+
+
+
+```python
 import os
 import matplotlib.pyplot as plt
 from langchain_core.prompts import ChatPromptTemplate
