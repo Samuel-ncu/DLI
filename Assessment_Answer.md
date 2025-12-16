@@ -22,11 +22,11 @@ llm = ChatNVIDIA(
 ```python
 import requests
 import base64
-
+ 
 def ask_about_image(image_path: str, question: str = "Describe the image") -> str:
     ####################################################################
     ## < EXERCISE SCOPE
-
+ 
     # 1) pick mime type without extra imports
     ext = image_path.lower().split(".")[-1]
     if ext == "png":
@@ -37,13 +37,13 @@ def ask_about_image(image_path: str, question: str = "Describe the image") -> st
         mime = "image/webp"
     else:
         mime = "image/png"  # safe fallback
-
+ 
     # 2) read + base64 encode
     with open(image_path, "rb") as f:
         image_b64 = base64.b64encode(f.read()).decode("utf-8")
-
+ 
     data_url = f"data:{mime};base64,{image_b64}"
-
+ 
     # 3) OpenAI-compatible vLLM endpoint
     url = f"{model_path.rstrip('/')}/chat/completions"
     payload = {
@@ -64,22 +64,21 @@ def ask_about_image(image_path: str, question: str = "Describe the image") -> st
         "Content-Type": "application/json",
         "Authorization": "Bearer None",
     }
-
+ 
     resp = requests.post(url, json=payload, headers=headers, timeout=120)
     resp.raise_for_status()
     out = resp.json()
-
+ 
     # 4) extract text
     try:
         return out["choices"][0]["message"]["content"]
     except Exception:
         return str(out)
-
+ 
     ## EXERCISE SCOPE >
     ####################################################################
-
+ 
 description = ask_about_image("./imgs/agent-overview.png", "Describe the image")
-print(description)
 ```
 
 # [Task 2] Image Creation
