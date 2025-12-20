@@ -4,4 +4,4 @@
 1. Thank you for requesting the LLM Ambassador Workshop (Nov 25 - Dec 23).
  * Your Event Code for this workshop is:
  
- *NCU_LLM_AMBASSADOR_DE25
+ * NCU_LLM_AMBASSADOR_DE25
