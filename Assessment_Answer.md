@@ -20,98 +20,82 @@ llm = ChatNVIDIA(
 
 # [Task 1] Image Ingestion
 ```python
-import requests
 import base64
 import os
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_core.messages import HumanMessage
 
 # ==========================================
-# 1. 設定模型資訊 (根據您的清單更新)
+# 1. 環境設定與模型初始化
 # ==========================================
-# 這裡使用支援視覺 (VL) 的模型，並指向正確的 Port (9002)
-MODEL_PATH = "http://0.0.0.0:9002/v1" 
-MODEL_NAME = "nvidia/Llama-3.1-Nemotron-Nano-VL-8B-V1"
+# 請注意：這裡我們換成了具備視覺能力的模型 ID
+model_name = "meta/llama-3.2-11b-vision-instruct" 
+model_path = "http://0.0.0.0:9004/v1"
 
+# 設定環境變數 (LangChain 連接器會讀取這些)
+%env NVIDIA_BASE_URL=$model_path
+%env NVIDIA_DEFAULT_MODE=open
+
+# 初始化 ChatNVIDIA
+llm = ChatNVIDIA(
+    model=model_name, 
+    base_url=model_path, 
+    max_completion_tokens=5000, 
+    temperature=0
+)
+
+# ==========================================
+# 2. 實作 ask_about_image 方法
+# ==========================================
 def ask_about_image(image_path: str, question: str = "Describe the image") -> str:
     """
-    將圖片編碼為 Base64 並傳送至 VLM 模型進行分析。
+    使用 ChatNVIDIA 處理圖片與問題。
     """
-    # --- A. 檢查檔案 ---
+    # --- A. 讀取圖片並進行 Base64 編碼 ---
     if not os.path.exists(image_path):
-        return f"錯誤：找不到圖片檔案 {image_path}"
+        return f"錯誤：找不到圖片 {image_path}"
 
-    # --- B. 判斷 MIME 類型並進行 Base64 編碼 ---
-    ext = image_path.lower().split(".")[-1]
-    mime_map = {
-        "png": "image/png",
-        "jpg": "image/jpeg",
-        "jpeg": "image/jpeg",
-        "webp": "image/webp"
-    }
-    mime = mime_map.get(ext, "image/png")
+    with open(image_path, "rb") as f:
+        image_b64 = base64.b64encode(f.read()).decode("utf-8")
+    
+    # 這裡假設為 PNG，若要更嚴謹可動態判斷副檔名
+    data_url = f"data:image/png;base64,{image_b64}"
 
+    # --- B. 建立多模態訊息 ---
+    # LangChain 的格式是將文字與圖片網址放在內容清單中
+    message = HumanMessage(
+        content=[
+            {"type": "text", "text": question},
+            {"type": "image_url", "image_url": {"url": data_url}},
+        ]
+    )
+
+    # --- C. 呼叫模型 ---
     try:
-        with open(image_path, "rb") as f:
-            image_b64 = base64.b64encode(f.read()).decode("utf-8")
-        # 格式化為 Data URL
-        data_url = f"data:{mime};base64,{image_b64}"
+        response = llm.invoke([message])
+        return response.content
     except Exception as e:
-        return f"圖片讀取/編碼失敗: {str(e)}"
-
-    # --- C. 準備 Payload (OpenAI 兼容格式) ---
-    url = f"{MODEL_PATH.rstrip('/')}/chat/completions"
-    
-    payload = {
-        "model": MODEL_NAME,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": question},
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                ],
-            }
-        ],
-        "temperature": 0.2,
-        "max_tokens": 800,
-    }
-
-    # 在本地端 vLLM 環境，通常不需要 Authorization，或留空即可
-    headers = {"Content-Type": "application/json"}
-
-    # --- D. 發送請求與處理結果 ---
-    try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=120)
-        
-        # 如果失敗，印出詳細原因方便除錯
-        if resp.status_code != 200:
-            error_detail = resp.text
-            return f"伺服器錯誤 (Status {resp.status_code}): {error_detail}"
-
-        result = resp.json()
-        return result["choices"][0]["message"]["content"]
-
-    except requests.exceptions.RequestException as e:
-        return f"網路連線異常: {str(e)}"
+        return f"模型呼叫失敗: {str(e)}"
 
 # ==========================================
-# 2. 執行測試
+# 3. 執行與測試
 # ==========================================
-if __name__ == "__main__":
-    # 請確保此路徑下確實有這張圖片
-    test_image = "./imgs/agent-overview.png"
-    test_question = "Describe the image"
-
-    print(f"正在分析圖片：{test_image} ...")
-    description = ask_about_image(test_image, test_question)
-    
-    print("\n--- 模型分析結果 ---")
-    print(description)
+description = ask_about_image("./imgs/agent-overview.png", "Describe the image")
+print(description)
 ```
 
 # [Task 2] Image Creation
 ```python
 from diffusers import DiffusionPipeline
 import torch
+import matplotlib.pyplot as plt
+
+# ==========================================
+# 1. 初始化 Pipeline (放在函數外，避免重複載入)
+# ==========================================
+# 建議先清理一下 GPU 記憶體，確保有足夠空間給 SDXL
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
 
 pipe = DiffusionPipeline.from_pretrained(
     "stabilityai/stable-diffusion-xl-base-1.0",
@@ -120,106 +104,116 @@ pipe = DiffusionPipeline.from_pretrained(
     variant="fp16",
 ).to("cuda")
 
+# ==========================================
+# 2. 定義輔助函數：繪製圖片
+# ==========================================
+def plot_imgs(images, rows=1, cols=1):
+    fig, axes = plt.subplots(rows, cols, figsize=(10, 10))
+    if rows * cols == 1:
+        axes.imshow(images[0])
+        axes.axis('off')
+    else:
+        for i, img in enumerate(images):
+            axes[i].imshow(img)
+            axes[i].axis('off')
+    plt.tight_layout()
+    plt.show()
 
-## TODO: Consider initializing your diffusion pipeline outside of generate_images
-
-## TODO: Implement this method
-def generate_images(prompt):
+# ==========================================
+# 3. 實作 generate_images 方法
+# ==========================================
+def generate_images(prompt: str):
+    """
+    根據文字描述生成圖片
+    """
     ####################################################################
     ## < EXERCISE SCOPE
     
-    images = pipe(prompt=prompt).images
-
-    return images 
+    # 執行生成過程
+    # num_inference_steps 設定為 30-50 效果通常較好，20-25 速度較快
+    output = pipe(
+        prompt=prompt, 
+        num_inference_steps=25, 
+        guidance_scale=7.5
+    )
+    
+    return output.images 
+    
     ## EXERCISE SCOPE >
     ####################################################################
-description = "The image presents a diagram illustrating the relationship between an agent and various components of memory and tools. The diagram is structured with a central rectangle labeled 'Agent,' which is connected to several other elements. On the left side, there are three rectangles representing 'Short-term memory,' 'Memory,' and 'Tools,' each with a list of items beneath them. 'Short-term memory' includes 'Calendar ()', 'Calculator ()', and 'CodeInterpreter ()', while 'Memory' has 'Long-term memory' and '...more' listed. 'Tools' is connected to 'Action' and 'Planning.' On the right side, there are three rectangles labeled 'Reflection,' 'Self-critics,' and 'Chain of thoughts,' which are connected to 'Planning.' Additionally, there is a rectangle labeled 'Subgoal decomposition' connected to 'Action.' The connections between the elements are depicted with solid and dashed lines, indicating different types of relationships."
 
+# ==========================================
+# 4. 執行生成
+# ==========================================
+description = ("The image presents a diagram illustrating the relationship between an agent and "
+               "various components of memory and tools. The diagram is structured with a central "
+               "rectangle labeled 'Agent,' which is connected to several other elements...")
 
-    ## EXERCISE SCOPE >
-    ####################################################################
+print("正在根據描述生成圖片，請稍候...")
+generated_images = generate_images(description)
 
-images = generate_images(description)
-for img in images:
-    img.show()
+# 顯示圖片
+for img in generated_images:
+    # 如果在環境中支援，可以使用 img.show()
+    # 在 Notebook 中，我們通常使用 plot_imgs
+    pass
+
+plot_imgs(generated_images, 1, 1)
 ```
 
 # [Task 3] Prompt Synthesis
 ```python
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import matplotlib.pyplot as plt
 
-####################################################################
-## < EXERCISE SCOPE
+def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
+    ####################################################################
+    ## < EXERCISE SCOPE
+    
+    # 1. 定義 Prompt Template
+    # 我們告訴 LLM 它是一個專業的 Stable Diffusion 提示詞工程師
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", (
+            "You are a professional prompt engineer for Stable Diffusion XL. "
+            "Your task is to take a complex technical description of an AI architecture "
+            "and rewrite it into {n} distinct, highly visual, and concise image generation prompts. "
+            "Focus on style, lighting, and layout. Avoid technical jargon; use visual metaphors. "
+            "Output each prompt on a new line, starting with a dash (-)."
+        )),
+        ("human", "Convert this description into {n} visual prompts: {user_query}")
+    ])
 
-# 1) Prompt template: description -> ONE diffusion prompt (one line)
-prompt_tmpl = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are a prompt engineer for text-to-image diffusion models (Stable Diffusion / SDXL). "
-     "Convert the user's description into ONE high-quality, keyword-rich diffusion prompt. "
-     "Return ONE LINE ONLY (no bullets, no numbering, no quotes, no explanations)."),
-    ("user",
-     "User description:\n{desc}\n\n"
-     "Write a diffusion prompt including: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
-     "Output only the prompt line.")
-])
+    # 2. 建立 Chain
+    # 使用之前定義好的 llm (Llama-3.3-70B 非常適合這個任務)
+    chain = prompt_template | llm | StrOutputParser()
 
-# 2) Chain: template -> llm -> string
-diff_prompt_chain = prompt_tmpl | llm | StrOutputParser()
+    # 3. 執行並解析輸出
+    raw_output = chain.invoke({"user_query": user_query, "n": n})
+    
+    # 將輸出的字串按行切割，並清理多餘的符號
+    # 我們預期輸出是像 "- Prompt 1 \n - Prompt 2" 這樣的格式
+    lines = [line.strip("- ").strip() for line in raw_output.strip().split("\n") if line.strip()]
+    
+    # 確保返回的數量正確 (截斷或填充)
+    sd_prompts = lines[:n]
+    
+    # 防禦性程式碼：如果 LLM 回傳不足 n 個，重複最後一個
+    while len(sd_prompts) < n:
+        sd_prompts.append(sd_prompts[-1] if sd_prompts else "A clean technical diagram of an AI agent")
 
-# 3) Emphasis variants (to create multiple prompts)
-emphases = [
-    "cinematic wide shot, environment detail, soft volumetric lighting",
-    "close-up, shallow depth of field, bokeh, portrait composition",
-    "top-down / isometric composition, clean shapes, high clarity",
-    "dramatic angle, high contrast lighting, stylized artistic look",
-]
+    assert len(sd_prompts) == n
+    return sd_prompts
+    
+    ## EXERCISE SCOPE >
+    ####################################################################
 
-# 4) Build 4 synthetic prompts from an image description string `description`
-new_sd_prompts = []
-for e in emphases:
-    p = diff_prompt_chain.invoke({"desc": f"{description}\n\nEmphasis: {e}"}).strip()
-    new_sd_prompts.append(p)
+# --- 執行合成 ---
+# 使用先前 Task 1 得到的 description
+new_sd_prompts = llm_rewrite_to_image_prompts(description, n=4)
 
-print("len(new_sd_prompts) =", len(new_sd_prompts))
-for i, p in enumerate(new_sd_prompts, 1):
-    print(f"{i}. {p}")
-
-# 5) (Optional) single prompt version
-new_diff_prompt = diff_prompt_chain.invoke({"desc": description}).strip()
-
-## EXERCISE SCOPE >
-####################################################################
-
-
-# Utility: display images returned as file paths OR PIL images
-def plot_imgs(image_paths_or_pils, r=2, c=2):
-    fig, axes = plt.subplots(r, c, figsize=(4*c, 4*r))
-    axes_list = getattr(axes, "flat", [axes])
-
-    for i, ax in enumerate(axes_list):
-        ax.axis("off")
-        if i >= len(image_paths_or_pils):
-            continue
-
-        item = image_paths_or_pils[i]
-
-        # Case A: filepath
-        if isinstance(item, str):
-            img = plt.imread(item)
-            ax.imshow(img)
-
-        # Case B: PIL image
-        elif hasattr(item, "size") and hasattr(item, "mode"):
-            ax.imshow(item)
-
-        else:
-            ax.set_title("Unsupported type")
-
-    plt.tight_layout()
-    plt.show()
-
+print("🚀 生成的新提示詞：")
+for i, p in enumerate(new_sd_prompts):
+    print(f"{i+1}. {p}")
 ```
 
 # [Task 4] Pipelining and Iterating
@@ -227,170 +221,55 @@ def plot_imgs(image_paths_or_pils, r=2, c=2):
 
 
 ```python
-import os
-import matplotlib.pyplot as plt
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-
-def llm_rewrite_to_image_prompts(user_query: str, n: int = 4) -> list[str]:
-    ####################################################################
-    ## < EXERCISE SCOPE
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-         "You write prompts for text-to-image diffusion models (Stable Diffusion / SDXL). "
-         "Output EXACTLY N lines. Each line is ONE prompt. No numbering/bullets/quotes/explanations."),
-        ("user",
-         "Image description:\n{desc}\n\n"
-         "Generate exactly {n} distinct diffusion prompts. "
-         "Each line should include: subject, setting, composition, lighting, camera/lens, style, and quality tags. "
-         "Output ONLY the {n} lines.")
-    ])
-
-    chain = prompt | llm | StrOutputParser()
-
-    text = ""
-    for _ in range(2):  # retry twice to reduce backend timeout impact
-        try:
-            text = chain.invoke({"desc": user_query, "n": n})
-            if text:
-                break
-        except Exception:
-            text = ""
-
-    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
-
-    # normalize if model adds bullets/numbering
-    cleaned = []
-    for ln in lines:
-        while ln and ln[0] in "-•":
-            ln = ln[1:].strip()
-        if len(ln) >= 3 and ln[0].isdigit() and ln[1] in ".)" and ln[2] == " ":
-            ln = ln[3:].strip()
-        cleaned.append(ln)
-
-    sd_prompts = cleaned[:n]
-
-    # fallback prompts if LLM failed/timeout/empty
-    if len(sd_prompts) < n:
-        base = (user_query or "").strip().replace("\n", " ")
-        if not base:
-            base = "a high quality photo of an interesting subject"
-        fallback = [
-            f"{base}, cinematic wide shot, environment detail, soft volumetric lighting, ultra detailed, sharp focus, high quality",
-            f"{base}, close-up, shallow depth of field, bokeh, portrait composition, ultra detailed, sharp focus, high quality",
-            f"{base}, top-down composition, clean shapes, high clarity, studio lighting, ultra detailed, sharp focus, high quality",
-            f"{base}, dramatic angle, high contrast lighting, stylized artistic look, ultra detailed, sharp focus, high quality",
-        ]
-        # append until length n
-        for f in fallback:
-            if len(sd_prompts) >= n:
-                break
-            sd_prompts.append(f)
-
-    while len(sd_prompts) < n:
-        sd_prompts.append(sd_prompts[-1])
-
-    assert len(sd_prompts) == n
-    return sd_prompts
-
-    ## EXERCISE SCOPE >
-    ####################################################################
-
-
-def _show_paths_grid(image_paths: list[str], r=2, c=2, title=None):
-    """Display images from file paths (best-effort)."""
-    if not image_paths:
-        print("No images to display.")
-        return
-    n = len(image_paths)
-    fig, axes = plt.subplots(r, c, figsize=(4*c, 4*r))
-    axes_list = getattr(axes, "flat", [axes])
-    for i, ax in enumerate(axes_list):
-        ax.axis("off")
-        if i < n:
-            try:
-                img = plt.imread(image_paths[i])
-                ax.imshow(img)
-                ax.set_title(f"{i+1}", fontsize=10)
-            except Exception:
-                ax.set_title(f"Failed: {image_paths[i]}", fontsize=8)
-    if title:
-        fig.suptitle(title, fontsize=12)
-    plt.tight_layout()
-    plt.show()
-
-
-## TODO: Execute on assessment objective
 def generate_images_from_image(image_url: str, num_images = 4):
+    print(f"\n--- 開始處理: {image_url} ---")
 
     ####################################################################
     ## < EXERCISE SCOPE
 
-    ## TODO 1: Generate the description of the image provided in image_url
-    original_description = ask_about_image(image_url, "Describe the image in detail")
+    # 1. 描述圖片：使用 Task 1 的視覺模型獲取原始描述
+    # 注意：這裡確保使用的是支援視覺的模型（如 Nemotron-VL 或 Llama-3.2-Vision）
+    original_description = ask_about_image(image_url, "Provide a highly detailed technical and visual description of this image.")
+    print(f"✅ 已生成原始描述 (長度: {len(original_description)})")
 
-    ## TODO 2: Generate four disjoint prompts, hopefully different, to feed into SDXL
+    # 2. 提示詞合成：將冗長的描述轉換為 n 個適合 Diffusion 的短提示詞
+    # 我們使用 Task 3 實作的 LLM 重寫邏輯
     diffusion_prompts = llm_rewrite_to_image_prompts(original_description, n=num_images)
+    print(f"✅ 已合成 {num_images} 組合成提示詞")
 
-    ## TODO 3: Generate the resulting images
-    # IMPORTANT: must return PATH STRINGS so send_metadata() can do .replace()
-    # Save locally as needed.
-    save_dir = "/dli/task/generated_images" if os.path.exists("/dli/task") else "generated_images"
-    os.makedirs(save_dir, exist_ok=True)
-
-    generated_images = []  # list[str] paths
-
-    for i, p in enumerate(diffusion_prompts):
-        outs = []
-        for _ in range(2):  # retry per prompt
-            try:
-                outs = generate_images(p)  # -> [filepath] OR [PIL Image]
-                if outs:
-                    break
-            except Exception:
-                outs = []
-
-        if not outs:
-            continue
-
-        first = outs[0]
-
-        # Case A: already a filepath
-        if isinstance(first, str):
-            generated_images.append(first)
-            continue
-
-        # Case B: PIL image -> save to path
-        if hasattr(first, "save") and hasattr(first, "size"):
-            out_path = os.path.join(save_dir, f"task4_{os.path.basename(image_url).replace('.','_')}_{i}.png")
-            try:
-                first.save(out_path)
-                generated_images.append(out_path)
-            except Exception:
-                pass
-
-    # Ensure we have up to num_images paths (best-effort; do not crash)
-    if len(generated_images) > num_images:
-        generated_images = generated_images[:num_images]
-
-    # Display images (2x2 grid recommended)
-    _show_paths_grid(generated_images, r=2, c=2, title=os.path.basename(image_url))
+    # 3. 影像生成：迭代提示詞並產出影像
+    generated_images = []
+    for i, prompt in enumerate(diffusion_prompts):
+        print(f"🎨 正在生成第 {i+1}/{num_images} 張圖片...")
+        # 呼叫 Task 2 的 Diffusion Pipeline
+        # 為了速度，我們可以稍微降低 num_inference_steps
+        imgs = generate_images(prompt) 
+        generated_images.extend(imgs)
 
     ## EXERCISE SCOPE >
     ####################################################################
-        
+
+    # 視覺化展示結果
+    print(f"✨ 正在展示 {image_url} 的轉換成果：")
+    plot_imgs(generated_images, rows=1, cols=num_images)
+    
     return generated_images, diffusion_prompts, original_description
 
+# --- 批次執行評測 ---
+all_results = []
+test_files = [
+    "imgs/agent-overview.png",
+    "imgs/multimodal.png",
+    "img-files/tree-frog.jpg",
+    "img-files/paint-cat.jpg"
+]
 
-# Run
-results = []
-results += [generate_images_from_image("imgs/agent-overview.png")]
-results += [generate_images_from_image("imgs/multimodal.png")]
-results += [generate_images_from_image("img-files/tree-frog.jpg")]
-results += [generate_images_from_image("img-files/paint-cat.jpg")]
-
+for file_path in test_files:
+    if os.path.exists(file_path):
+        res = generate_images_from_image(file_path)
+        all_results.append(res)
+    else:
+        print(f"⚠️ 略過：找不到檔案 {file_path}")
 ```
 
 
