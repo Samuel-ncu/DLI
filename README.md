@@ -1,5 +1,5 @@
 # DLI
- Go to [learn.nvidia.com/dli-event](learn.nvidia.com/dli-event) and enter the event code: **CIP_RADV2**
+ Go to [learn.nvidia.com/dli-event](https://learn.nvidia.com/dli-event) and enter the event code: **CIP_RADV2**
 
 # Workshop1
  
