@@ -22,32 +22,46 @@ llm = ChatNVIDIA(
 ```python
 import requests
 import base64
- 
+import os
+
+# ==========================================
+# 1. 設定模型資訊 (根據您的清單更新)
+# ==========================================
+# 這裡使用支援視覺 (VL) 的模型，並指向正確的 Port (9002)
+MODEL_PATH = "http://0.0.0.0:9002/v1" 
+MODEL_NAME = "nvidia/Llama-3.1-Nemotron-Nano-VL-8B-V1"
+
 def ask_about_image(image_path: str, question: str = "Describe the image") -> str:
-    ####################################################################
-    ## < EXERCISE SCOPE
- 
-    # 1) pick mime type without extra imports
+    """
+    將圖片編碼為 Base64 並傳送至 VLM 模型進行分析。
+    """
+    # --- A. 檢查檔案 ---
+    if not os.path.exists(image_path):
+        return f"錯誤：找不到圖片檔案 {image_path}"
+
+    # --- B. 判斷 MIME 類型並進行 Base64 編碼 ---
     ext = image_path.lower().split(".")[-1]
-    if ext == "png":
-        mime = "image/png"
-    elif ext in ("jpg", "jpeg"):
-        mime = "image/jpeg"
-    elif ext == "webp":
-        mime = "image/webp"
-    else:
-        mime = "image/png"  # safe fallback
- 
-    # 2) read + base64 encode
-    with open(image_path, "rb") as f:
-        image_b64 = base64.b64encode(f.read()).decode("utf-8")
- 
-    data_url = f"data:{mime};base64,{image_b64}"
- 
-    # 3) OpenAI-compatible vLLM endpoint
-    url = f"{model_path.rstrip('/')}/chat/completions"
+    mime_map = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "webp": "image/webp"
+    }
+    mime = mime_map.get(ext, "image/png")
+
+    try:
+        with open(image_path, "rb") as f:
+            image_b64 = base64.b64encode(f.read()).decode("utf-8")
+        # 格式化為 Data URL
+        data_url = f"data:{mime};base64,{image_b64}"
+    except Exception as e:
+        return f"圖片讀取/編碼失敗: {str(e)}"
+
+    # --- C. 準備 Payload (OpenAI 兼容格式) ---
+    url = f"{MODEL_PATH.rstrip('/')}/chat/completions"
+    
     payload = {
-        "model": model_name,
+        "model": MODEL_NAME,
         "messages": [
             {
                 "role": "user",
@@ -57,29 +71,41 @@ def ask_about_image(image_path: str, question: str = "Describe the image") -> st
                 ],
             }
         ],
-        "temperature": 0,
+        "temperature": 0.2,
         "max_tokens": 800,
     }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer None",
-    }
- 
-    resp = requests.post(url, json=payload, headers=headers, timeout=120)
-    resp.raise_for_status()
-    out = resp.json()
- 
-    # 4) extract text
+
+    # 在本地端 vLLM 環境，通常不需要 Authorization，或留空即可
+    headers = {"Content-Type": "application/json"}
+
+    # --- D. 發送請求與處理結果 ---
     try:
-        return out["choices"][0]["message"]["content"]
-    except Exception:
-        return str(out)
- 
-    ## EXERCISE SCOPE >
-    ####################################################################
- 
-description = ask_about_image("./imgs/agent-overview.png", "Describe the image")
-print(description)
+        resp = requests.post(url, json=payload, headers=headers, timeout=120)
+        
+        # 如果失敗，印出詳細原因方便除錯
+        if resp.status_code != 200:
+            error_detail = resp.text
+            return f"伺服器錯誤 (Status {resp.status_code}): {error_detail}"
+
+        result = resp.json()
+        return result["choices"][0]["message"]["content"]
+
+    except requests.exceptions.RequestException as e:
+        return f"網路連線異常: {str(e)}"
+
+# ==========================================
+# 2. 執行測試
+# ==========================================
+if __name__ == "__main__":
+    # 請確保此路徑下確實有這張圖片
+    test_image = "./imgs/agent-overview.png"
+    test_question = "Describe the image"
+
+    print(f"正在分析圖片：{test_image} ...")
+    description = ask_about_image(test_image, test_question)
+    
+    print("\n--- 模型分析結果 ---")
+    print(description)
 ```
 
 # [Task 2] Image Creation
