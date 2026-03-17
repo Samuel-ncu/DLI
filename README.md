@@ -11,4 +11,7 @@ Your Event Code for this workshop is:
 
 NCU_LLM_AMBASSADOR_JA26
 
+# Workshop 3 -NCU BA3187
+
+* NCU_LLM_AMBASSADOR_JU26
  
