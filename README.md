@@ -2,7 +2,7 @@
  Go to [learn.nvidia.com/dli-event](https://learn.nvidia.com/dli-event) and enter the event code: 
 
 # NCU 115 GS3073
-
+09/29/2026 4:00 PM – 10/06/2026 7:00 PM
 * NCU_LLM_AMBASSADOR_OC26
   
 # ERP 20260411
